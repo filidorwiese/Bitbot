@@ -9,15 +9,16 @@ require_once('./PHP-btce-api/btce-api.php');
 $BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret']);
 
 $lastAction = false;
-$updateAccountBalance = true;
+$updateAccountBalance = 0;
 
 while (true) {
     // Get ticker status for trading pair
     $ticker = getTicker($CONFIG['trade_pair']);
 
     // Get balance for trading pair
-    if ($updateAccountBalance) {
-        $updateAccountBalance = false;
+    $updateAccountBalance--;
+    if ($updateAccountBalance < 1) {
+        $updateAccountBalance = 10;
         list($currency1, $currency2) = explode('_', $CONFIG['trade_pair']);
         $balance = getAccountBalance($currency1, $currency2);
         $accountValue = ($balance[$currency1] * $ticker['last']) + $balance[$currency2];
@@ -32,6 +33,7 @@ while (true) {
     $sellThreshold = $average + $tradeThreshold;
 
     // Print status
+    echo date("d-m-Y H:i:s") . PHP_EOL . PHP_EOL;
     echo 'Trade pair: ' . strtoupper($CONFIG['trade_pair']) . PHP_EOL;
     echo 'Trade amount: ' . $tradeAmount . ' ' . $currency1 . PHP_EOL;
     echo 'Trade threshold: ' . $tradeThreshold . ' ' . $currency1 . PHP_EOL;
@@ -51,8 +53,8 @@ while (true) {
             if ($balance[$currency1] < $tradeAmount) {
                 echo 'Insufficient ' . $currency2 . ' funds to buy' . PHP_EOL;
             } else {
-		//trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'buy');
-                //$updateAccountBalance = true;
+		trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'buy');
+                $updateAccountBalance = 0;
             }
         }
     } elseif ($lastAction == 'buy') {
@@ -64,8 +66,8 @@ while (true) {
             if ($balance[$currency2] < $cost) {
                 echo 'Insufficient ' . $currency1 . ' funds to sell' . PHP_EOL;
             } else {
-		//trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'sell');
-                //$updateAccountBalance = true;
+		trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'sell');
+                $updateAccountBalance = 0;
             }
         }
     } else {
@@ -83,7 +85,7 @@ while (true) {
     }
 
     // Wait for a while
-    echo str_repeat('-', 80) . PHP_EOL;
+    echo str_repeat('-', 30) . ' waiting ' . $CONFIG['trade_wait'] . ' sec ' . str_repeat('-', 30) . PHP_EOL;
     sleep($CONFIG['trade_wait']);
 }
 
