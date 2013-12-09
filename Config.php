@@ -1,17 +1,11 @@
 <?php
 
 $CONFIG = array(
-	'btce_api_key' => '8DHN3Q5R-RJ24128I-2JRPYQKT-60JUN7U4-KEIOJ5NO',
-	'btce_api_secret' => 'd69ad8f8b319841e23d984cb0c03f9d006f4d14a17a8406cd48f82dc78f30722',
-
-	'mysql_host' => 'localhost',
-	'mysql_user' => 'bitbot',
-	'mysql_password' => 'xdC8AzxbtLd42YfV',
-	'mysql_database' => 'bitbot',
+	'btce_api_key' => 'AYK78PDO-KYH5MPJA-NGIAGBAZ-86GM0CQ3-V6KUY1IG',
+	'btce_api_secret' => 'cbbedd9b4ae1d97a545f11b7c2f97f957a15d683282e03bfe03d5000f9ec4880',
 
 	'trade_pair' => 'ltc_usd',
-	'trade_amount' => 0.05,
-	'trade_threshold' => 0.02,
-	'trade_average_range' => 120, // Minutes
-	'trade_wait' => 10 // Seconds
+	'trade_amount' => 0.3,
+	'trade_threshold' => 0.05,
+	'trade_wait' => 15 // Seconds
 );

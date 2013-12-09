@@ -8,18 +8,20 @@ require_once('./PHP-btce-api/btce-api.php');
 // Connect to BTC-e
 $BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret']);
 
-// Start with buying
-$lastAction = 'sell';
-$minimumProfitableSell = -1;
+$lastAction = false;
+$updateAccountBalance = true;
 
 while (true) {
     // Get ticker status for trading pair
     $ticker = getTicker($CONFIG['trade_pair']);
 
     // Get balance for trading pair
-    list($currency1, $currency2) = explode('_', $CONFIG['trade_pair']);
-    $balance = getAccountBalance($currency1, $currency2);
-    $accountValue = ($balance[$currency1] * $ticker['last']) + $balance[$currency2];
+    if ($updateAccountBalance) {
+        $updateAccountBalance = false;
+        list($currency1, $currency2) = explode('_', $CONFIG['trade_pair']);
+        $balance = getAccountBalance($currency1, $currency2);
+        $accountValue = ($balance[$currency1] * $ticker['last']) + $balance[$currency2];
+    }
 
     // Calculate average/threshold/etc
     $average = $ticker['avg'];
@@ -38,6 +40,7 @@ while (true) {
     echo 'Current: ' . $current . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
     echo 'Buying threshold: ' . $buyThreshold . ' ' . $currency2 . PHP_EOL;
     echo 'Selling threshold: ' . $sellThreshold . ' ' . $currency2 . PHP_EOL;
+    if (isset($argv[1]) && $argv[1] === 'dryrun') { exit; }
 
     // Alternate between buying and selling
     if ($lastAction == 'sell') {
@@ -48,10 +51,11 @@ while (true) {
             if ($balance[$currency1] < $tradeAmount) {
                 echo 'Insufficient ' . $currency2 . ' funds to buy' . PHP_EOL;
             } else {
-		trade($CONFIG['trade_pair'], $currency1, $currency2, 'buy');
+		//trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'buy');
+                //$updateAccountBalance = true;
             }
         }
-    } else {
+    } elseif ($lastAction == 'buy') {
 	echo 'Last action: ' . $lastAction . PHP_EOL;
 	echo 'Minimum profitable sell: ' . $minimumProfitableSell . ' ' . $currency2 . PHP_EOL;
         if ($current >= $sellThreshold && $current > $minimumProfitableSell) {
@@ -60,8 +64,21 @@ while (true) {
             if ($balance[$currency2] < $cost) {
                 echo 'Insufficient ' . $currency1 . ' funds to sell' . PHP_EOL;
             } else {
-		trade($CONFIG['trade_pair'], $currency1, $currency2, 'sell');
+		//trade($CONFIG['trade_pair'], $tradeAmount, $cost, 'sell');
+                //$updateAccountBalance = true;
             }
+        }
+    } else {
+        // First time, decide how to start
+        if ($current > $average) {
+            // Start with selling
+            $lastAction = 'buy';
+            echo 'First action will be selling' . PHP_EOL;
+            $minimumProfitableSell = $sellThreshold;
+        } else {
+            // Start with buying
+            $lastAction = 'sell';
+            echo 'First action will be buying' . PHP_EOL;
         }
     }
 
@@ -166,8 +183,12 @@ function getTicker($trade_pair = 'btc_usd') {
 function trade($trade_pair, $currency1, $currency2, $buyOrSell = 'sell') {
     global $BTCeAPI, $lastAction, $minimumProfitableSell;
 
+    $currency1 = number_format($currency1, 6);
+    $currency2 = number_format($currency2, 6);
+
     try {
         //$BTCeAPI->makeOrder($amount, $pair, $direction, $price);
+        //echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
         $BTCeAPI->makeOrder($currency1, $trade_pair, $buyOrSell, $currency2);
         $lastAction = $buyOrSell;
         $minimumProfitableSell = $currency2;
