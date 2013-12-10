@@ -8,6 +8,13 @@ require_once('./PHP-btce-api/btce-api.php');
 // Connect to BTC-e
 $BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret']);
 
+// Connect to MySQl
+$mysqli = new mysqli($CONFIG['mysql_host'], $CONFIG['mysql_user'], $CONFIG['mysql_password'], $CONFIG['mysql_database']);
+if ($mysqli->connect_errno) {
+    echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error . PHP_EOL;
+    exit;
+}
+
 $lastAction = false;
 $updateAccountBalance = 0;
 $lastAction = 'sell';
@@ -15,7 +22,7 @@ $lastAction = 'sell';
 //$lastAction = 'buy';
 //$minimumProfitableSell = 20;
 
-$simulation = (isset($argv[1]) && $argv[1] === 'simulation' ? true : false);
+$simulation = (isset($argv[1]) && $argv[1] === 'real' ? false : true);
 
 while (true) {
     // Get ticker status for trading pair
@@ -33,7 +40,9 @@ while (true) {
     }
 
     // Calculate average/threshold/etc
-    $average = $ticker['avg'];
+    $average = floatval($mysqli->query("SELECT AVG(x.ltc_usd) FROM (SELECT ltc_usd FROM ticker ORDER BY id DESC LIMIT " . $CONFIG['trade_average_range'] . ") x")->fetch_array()[0]);
+    //$average = floatval($mysqli->query("SELECT AVG(ltc_usd) FROM ticker ORDER BY id DESC LIMIT " . $CONFIG['trade_average_range'])->fetch_array()[0]);
+    //$average = $ticker['avg'];
     $current = $ticker['last'];
     $tradeAmount = $balance[$currency1] * $CONFIG['trade_amount'];
     $tradeThreshold = ($average * $CONFIG['trade_threshold']);
@@ -46,8 +55,9 @@ while (true) {
     echo 'Trade amount: ' . $tradeAmount . ' ' . $currency1 . PHP_EOL;
     echo 'Trade threshold: ' . $tradeThreshold . ' ' . $currency1 . PHP_EOL;
     echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
-    echo 'Average: ' . $average . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
+
     echo 'Current: ' . $current . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
+    echo 'Average (' . $CONFIG['trade_average_range'] . ' min): ' . $average . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
     echo 'Buying threshold: ' . $buyThreshold . ' ' . $currency2 . PHP_EOL;
     echo 'Selling threshold: ' . $sellThreshold . ' ' . $currency2 . PHP_EOL;
 
