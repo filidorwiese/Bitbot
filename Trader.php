@@ -41,7 +41,6 @@ while (true) {
 
     // Calculate average/threshold/etc
     $average = floatval($mysqli->query("SELECT AVG(x.ltc_usd) FROM (SELECT ltc_usd FROM ticker ORDER BY id DESC LIMIT " . $CONFIG['trade_average_range'] . ") x")->fetch_array()[0]);
-    //$average = floatval($mysqli->query("SELECT AVG(ltc_usd) FROM ticker ORDER BY id DESC LIMIT " . $CONFIG['trade_average_range'])->fetch_array()[0]);
     //$average = $ticker['avg'];
     $current = $ticker['last'];
     $tradeAmount = $balance[$currency1] * $CONFIG['trade_amount'];

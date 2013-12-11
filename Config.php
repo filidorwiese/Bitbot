@@ -10,8 +10,10 @@ $CONFIG = array(
         'mysql_database' => 'bitbot',
 
 	'trade_pair' => 'ltc_usd',
-	'trade_amount' => 0.3, // 0.3
+	'trade_amount' => 0.1, // 0.3
 	'trade_threshold' => 0.02, // 0.02
 	'trade_wait' => 15, // Seconds
-        'trade_average_range' => 60 // Minutes
+        'trade_average_range' => 60, // Minutes
+        'trade_trailing_stop_threshold' => 0,
+        'trade_stop_loss_percentage' => 95,
 );
