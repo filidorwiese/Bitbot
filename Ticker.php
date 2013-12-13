@@ -34,10 +34,10 @@ try {
     */
     $tickerLtcUsd = $BTCeAPI->getPairTicker('ltc_usd');
     $tickerBtcUsd = $BTCeAPI->getPairTicker('btc_usd');
-    $accountInfo = $BTCeAPI->apiQuery('getInfo');
-    $ltc = $accountInfo['return']['funds']['ltc'];
-    $btc = $accountInfo['return']['funds']['btc'];
-    $usd = $accountInfo['return']['funds']['usd'];
+    #$accountInfo = $BTCeAPI->apiQuery('getInfo');
+    #$ltc = $accountInfo['return']['funds']['ltc'];
+    #$btc = $accountInfo['return']['funds']['btc'];
+    #$usd = $accountInfo['return']['funds']['usd'];
 
     //print_r($BTCeAPI->getPairDepth('ltc_usd'));
     //print_r($BTCeAPI->getPairFee('ltc_usd'));
@@ -55,8 +55,8 @@ try {
 $result = $mysqli->query("INSERT INTO  `bitbot`.`ticker` (`ltc_usd`,`btc_usd`) VALUES ('" . $tickerLtcUsd['ticker']['last'] . "', '" . $tickerBtcUsd['ticker']['last'] . "');");
 if (!$result) { echo "MySQL error: " . $mysqli->error . PHP_EOL; exit; }
 
-$result = $mysqli->query("UPDATE `bitbot`.`balance` SET `ltc` = '" . $ltc . "', `btc` = '" . $btc . "', `usd` = '" . $usd . "' WHERE `balance`.`id` = 1;");
-if (!$result) { echo "MySQL error: " . $mysqli->error . PHP_EOL; exit; }
+#$result = $mysqli->query("UPDATE `bitbot`.`balance` SET `ltc` = '" . $ltc . "', `btc` = '" . $btc . "', `usd` = '" . $usd . "' WHERE `balance`.`id` = 1;");
+#if (!$result) { echo "MySQL error: " . $mysqli->error . PHP_EOL; exit; }
 
 
 

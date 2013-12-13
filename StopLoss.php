@@ -23,7 +23,7 @@ $sma_short_minutes = 10;
 $sma_long_minutes = 120;
 $last_price = 0;
 $buy_price = 0;
-$buy_threshold = 0.25;
+$buy_threshold = 1;
 $updateAccountBalance = 0;
 
 $simulation = (isset($argv[1]) && $argv[1] === 'real' ? false : true);
@@ -43,7 +43,6 @@ while (true) {
     $SmaLong = floatval($mysqli->query("SELECT AVG(x." . $CONFIG['trade_pair'] . ") FROM (SELECT " . $CONFIG['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT " . $sma_long_minutes . ") x")->fetch_array()[0]);
     $SmaDiff = 100 * ($SmaShort - $SmaLong) / (($SmaShort + $SmaLong) / 2);
     $last = floatval($mysqli->query("SELECT " . $CONFIG['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT 1")->fetch_array()[0]);
-    $current = ($bought ? $ticker['sell'] : $ticker['buy']);
     $tradeAmount = $balance[$currency1] * $CONFIG['trade_amount'];
 
     // Print status
@@ -52,7 +51,7 @@ while (true) {
     echo 'Trade amount: ' . $tradeAmount . ' ' . $currency1 . PHP_EOL;
     echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
 
-    echo 'Current: ' . $current . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
+    echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
     echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
     echo 'SMA: short ' . $SmaShort . ', long ' . $SmaLong . ', diff ' . $SmaDiff . '%' . PHP_EOL;
     if ($bought) {
@@ -60,12 +59,21 @@ while (true) {
        echo 'Trailing-stop-margin: ' . $trailing_stop_margin . PHP_EOL;
        echo 'Stop-loss: ' . $stop_loss_percentage . '%' . PHP_EOL;
     } else {
-       echo 'Buy threshold: ' . $buy_threshold . PHP_EOL;
+       echo 'Buy threshold: ' . $buy_threshold . PHP_EOL . PHP_EOL . PHP_EOL;
     }
 
-    //echo 'Average (' . $CONFIG['trade_average_range'] . ' min): ' . $average . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
-    // echo 'Buying threshold: ' . $buyThreshold . ' ' . $currency2 . PHP_EOL;
-    //echo 'Selling threshold: ' . $sellThreshold . ' ' . $currency2 . PHP_EOL;
+    // Buy shares on SMA cross-over
+    if (!$bought) {
+        if ($SmaDiff > $buy_threshold) {
+            $bought = true;
+            $buy_price = $ticker['buy'];
+            $cost = ($tradeAmount * $ticker['buy']);
+            $trailing_stop_margin = $buy_price * ($stop_loss_percentage / 100);
+
+            echo 'BUYING: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
+            trade($CONFIG['trade_pair'], $tradeAmount, $ticker['buy'], 'buy');
+        }
+    }
 
     // There are two ways of stopping a loss
     // - Trailing stop, which stops us selling out if the price keeps climbing
@@ -76,18 +84,17 @@ while (true) {
     if ($bought) {
         // Has the price gone up? If it has, add the difference between the
         // last price, and the current one to the trailing stop margin.
-        if ($current > $last) {
-            $trailing_stop_margin += $current - $last;
+        if ($ticker['sell'] > $last) {
+            $trailing_stop_margin += $ticker['sell'] - $last;
         }
         // Check if the price is less than the trailing stop margin. If it is, sell.
-        if ($current < $trailing_stop_margin) {
+        if ($ticker['sell'] < $trailing_stop_margin) {
             $bought = false;
             $buy_price = 0;
-            $cost = ($tradeAmount * $current);
-            $updateAccountBalance = 0;
+            $cost = ($tradeAmount * $ticker['sell']);
 
             echo 'SELLING (stop-margin): ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            trade($CONFIG['trade_pair'], $tradeAmount, $current, 'sell');
+            trade($CONFIG['trade_pair'], $tradeAmount, $ticker['sell'], 'sell');
         }
     }
 
@@ -99,29 +106,13 @@ while (true) {
         // store that.
         $stop_loss_price = $buy_price * ($stop_loss_percentage / 100);
         // Check if the price is less than the stop loss price. If it is, sell.
-        if ($current < $stop_loss_price) {
+        if ($ticker['sell'] < $stop_loss_price) {
             $bought = false;
             $buy_price = 0;
-            $cost = ($tradeAmount * $current);
-            $updateAccountBalance = 0;
+            $cost = ($tradeAmount * $ticker['sell']);
 
             echo 'SELLING (stop-loss): ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            trade($CONFIG['trade_pair'], $tradeAmount, $current, 'sell');
-        }
-    }
-
-    // Now, all you need is something to generate a buy signal. In this example we use
-    // EMA crossover, but you can use just about anything, as long as you set the appropriate flags.
-    if (!$bought) {
-        if ($SmaDiff > $buy_threshold) {
-            $bought = true;
-            $buy_price = $current;
-            $cost = ($tradeAmount * $current);
-            $updateAccountBalance = 0;
-            $trailing_stop_margin = $buy_price * ($stop_loss_percentage / 100);
-
-            echo 'BUYING: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            trade($CONFIG['trade_pair'], $tradeAmount, $current, 'buy');
+            trade($CONFIG['trade_pair'], $tradeAmount, $ticker['sell'], 'sell');
         }
     }
 
