@@ -17,10 +17,11 @@ class BTCeAPI {
     protected $noonce;
     protected $RETRY_FLAG = false;
     
-    public function __construct($api_key, $api_secret) {
+    public function __construct($api_key, $api_secret, $nonce_storage) {
         $this->api_key = $api_key;
         $this->api_secret = $api_secret;
-        $base_noonce = file_get_contents(dirname(__FILE__) . '/nonce');
+        $this->nonce_storage = $nonce_storage;
+        $base_noonce = @file_get_contents($this->nonce_storage);
         if($base_noonce === false) {
             // Try 1?
             $this->noonce = time();
@@ -36,7 +37,7 @@ class BTCeAPI {
      */
     protected function getnoonce() {
         $this->noonce++;
-        file_put_contents(dirname(__FILE__) . '/nonce', $this->noonce);
+        file_put_contents($this->nonce_storage, $this->noonce);
         echo 'nonce: ' . $this->noonce;
         return array(0.05, $this->noonce);
     }
