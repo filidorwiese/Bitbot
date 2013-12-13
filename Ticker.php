@@ -3,7 +3,7 @@
 
 chdir(dirname(__FILE__));
 require_once('./Config.php');
-require_once('./PHP-btce-api/btce-api.php');
+require_once('./btce-api/btce-api.php');
 
 // Connect to MySQl
 $mysqli = new mysqli($CONFIG['mysql_host'], $CONFIG['mysql_user'], $CONFIG['mysql_password'], $CONFIG['mysql_database']);

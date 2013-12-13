@@ -3,7 +3,7 @@
 
 chdir(dirname(__FILE__));
 require_once('./Config.php');
-require_once('./PHP-btce-api/btce-api.php');
+require_once('./btce-api/btce-api.php');
 
 // Connect to BTC-e
 $BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret']);
