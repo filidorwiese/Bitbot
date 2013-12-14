@@ -13,7 +13,7 @@ if ($mysqli->connect_errno) {
 }
 
 // Connect to BTC-e
-$BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret'], $CONFIG['btce_nonce_file']);
+$BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret'], '/tmp/nonce-ticker');
 
 // Get Ticker
 try {

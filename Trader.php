@@ -3,13 +3,14 @@
 
 chdir(dirname(__FILE__));
 
-$profile = (isset($argv[1]) ? 'profiles/' . $argv[1] . '.profile.php' : false);
-if (!is_file($profile)) { die("Please specify trade profile" . PHP_EOL); }
-require_once($profile);
+$profile = (isset($argv[1]) ? $argv[1] : false);
+$profileFile = 'profiles/' . $profile . '.profile.php';
+if (!is_file($profileFile)) { die("Please specify trade profile" . PHP_EOL); }
+require_once($profileFile);
 
 // Connect to BTC-e
 require_once('./btce-api/btce-api.php');
-$BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret'], $CONFIG['btce_nonce_file']);
+$BTCeAPI = new BTCeAPI($CONFIG['btce_api_key'], $CONFIG['btce_api_secret'], '/tmp/nonce-' . $profile);
 
 // Connect to MySQl
 $mysqli = new mysqli($CONFIG['mysql_host'], $CONFIG['mysql_user'], $CONFIG['mysql_password'], $CONFIG['mysql_database']);
@@ -50,12 +51,13 @@ while (true) {
     $SmaLong = floatval($mysqli->query("SELECT AVG(x." . $TRADE['trade_pair'] . ") FROM (SELECT " . $TRADE['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT " . $TRADE['trade_sma_long'] . ") x")->fetch_array()[0]);
     $SmaDiff = 100 * ($SmaShort - $SmaLong) / (($SmaShort + $SmaLong) / 2);
     $last = floatval($mysqli->query("SELECT " . $TRADE['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT 1")->fetch_array()[0]);
-    $tradeAmount = $balance[$currency1] * $TRADE['trade_amount'];
+    $tradeAmount = $balance[$currency2] * $TRADE['trade_amount'];
 
     // Print status
     echo date("d-m-Y H:i:s") . ($simulation ? ' ***SIMULATION***' : '') . PHP_EOL . PHP_EOL;
+    echo 'Profile: ' . $profile . PHP_EOL;
     echo 'Trade pair: ' . strtoupper($TRADE['trade_pair']) . PHP_EOL;
-    echo 'Trade amount: ' . $tradeAmount . ' ' . $currency1 . PHP_EOL;
+    echo 'Trade amount: ' . $tradeAmount . ' ' . $currency2 . PHP_EOL;
     echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
 
     echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
@@ -72,15 +74,15 @@ while (true) {
     // Buy shares on SMA cross-over
     if (!$bought) {
         if ($SmaDiff > $TRADE['trade_threshold']) {
-            $bought = $tradeAmount;
             $buy_price = $ticker['buy'];
-            $cost = ($tradeAmount * $ticker['buy']);
+            $bought = ($tradeAmount / $ticker['buy']);
+            $cost = $ticker['buy'] * $bought;
             $trailing_stop_margin = $buy_price * ($TRADE['trade_stop_loss'] / 100);
 
-            trade($TRADE['trade_pair'], $tradeAmount, $ticker['buy'], 'buy');
+            trade($TRADE['trade_pair'], $bought, $ticker['buy'], 'buy');
 
-            echo 'BUYING: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            TradeLog($tradeLog, 'Buying: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
+            echo 'BUYING: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
+            TradeLog($tradeLog, 'Buying: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
         }
     }
 
@@ -98,20 +100,22 @@ while (true) {
         }
         // Check if the price is less than the trailing stop margin. If it is, sell.
         if ($ticker['sell'] < $trailing_stop_margin) {
+            $cost = $bought * $ticker['sell'];
+
+            trade($TRADE['trade_pair'], $bought, $ticker['sell'], 'sell');
+
+            echo 'SELLING (stop-margin): ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
+            TradeLog($tradeLog, 'Hit stop margin: ' . $trailing_stop_margin);
+	    TradeLog($tradeLog, 'Selling: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
+
             $bought = 0;
             $buy_price = 0;
-            $cost = ($tradeAmount * $ticker['sell']);
-
-            trade($TRADE['trade_pair'], $tradeAmount, $ticker['sell'], 'sell');
-
-            echo 'SELLING (stop-margin): ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            TradeLog($tradeLog, 'Hit stop margin: ' . $trailing_stop_margin);
-	    TradeLog($tradeLog, 'Selling: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
         }
     }
 
     // 2. This is an example of stop-loss. It works by checking if the price has gone below a certain
     // percentage of the initial buy price. If it has, we sell.
+    /*
     if ($bought > 0) {
         // In this example we store the percentage as a constant, and the buy price.
         // You can alternatively calculate the stop loss price at buy point, and
@@ -129,7 +133,7 @@ while (true) {
             log($tradeLog, 'Hit stop loss: ' . $stop_loss_price);
 	    log($tradeLog, 'Selling: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
         }
-    }
+    }*/
 
     // Wait for a while
     echo str_repeat('-', 30) . ' waiting ' . $TRADE['trade_wait'] . ' sec ' . str_repeat('-', 30) . PHP_EOL;
@@ -140,7 +144,7 @@ while (true) {
 function TradeLog($file, $line) {
 global $simulation;
      if ($simulation) { return; }
-     file_put_contents($file, $line . PHP_EOL, FILE_APPEND);
+     file_put_contents($file, '[' . date("d-m-Y H:i:s") . '] ' .$line . PHP_EOL, FILE_APPEND);
 }
 
 
