@@ -51,14 +51,14 @@ while (true) {
     $SmaLong = floatval($mysqli->query("SELECT AVG(x." . $TRADE['trade_pair'] . ") FROM (SELECT " . $TRADE['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT " . $TRADE['trade_sma_long'] . ") x")->fetch_array()[0]);
     $SmaDiff = 100 * ($SmaShort - $SmaLong) / (($SmaShort + $SmaLong) / 2);
     $last = floatval($mysqli->query("SELECT " . $TRADE['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT 1")->fetch_array()[0]);
-    $tradeAmount = $balance[$currency2] * $TRADE['trade_amount'];
+    $tradeAmount = number_format($balance[$currency2] * $TRADE['trade_amount'], 6);
 
     // Print status
     echo date("d-m-Y H:i:s") . ($simulation ? ' ***SIMULATION***' : '') . PHP_EOL . PHP_EOL;
     echo 'Profile: ' . $profile . PHP_EOL;
     echo 'Trade pair: ' . strtoupper($TRADE['trade_pair']) . PHP_EOL;
     echo 'Trade amount: ' . $tradeAmount . ' ' . $currency2 . PHP_EOL;
-    echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
+    echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . PHP_EOL . PHP_EOL;// . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
 
     echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
     echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
@@ -74,15 +74,18 @@ while (true) {
     // Buy shares on SMA cross-over
     if (!$bought) {
         if ($SmaDiff > $TRADE['trade_threshold']) {
-            $buy_price = $ticker['buy'];
-            $bought = ($tradeAmount / $ticker['buy']);
-            $cost = $ticker['buy'] * $bought;
-            $trailing_stop_margin = $buy_price * ($TRADE['trade_stop_loss'] / 100);
+            if ($tradeAmount < $balance[$currency2]) {
+                $buy_price = $ticker['buy'];
+                $bought = number_format(($tradeAmount / $ticker['buy']),6);
+		$cost = number_format($ticker['buy'] * $bought, 6);
+                $trailing_stop_margin = $buy_price * ($TRADE['trade_stop_loss'] / 100);
 
-            trade($TRADE['trade_pair'], $bought, $ticker['buy'], 'buy');
-
-            echo 'BUYING: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            TradeLog($tradeLog, 'Buying: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
+                trade($TRADE['trade_pair'], $bought, $ticker['buy'], 'buy');
+                echo 'BUYING: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['buy'] . PHP_EOL;
+                TradeLog($tradeLog, 'Buying: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['buy']);
+	    } else {
+                echo 'NOT ENOUGH ' . $currency2 . PHP_EOL;
+            }
         }
     }
 
@@ -100,13 +103,12 @@ while (true) {
         }
         // Check if the price is less than the trailing stop margin. If it is, sell.
         if ($ticker['sell'] < $trailing_stop_margin) {
-            $cost = $bought * $ticker['sell'];
+            $cost = number_format($bought * $ticker['sell'],6);
 
             trade($TRADE['trade_pair'], $bought, $ticker['sell'], 'sell');
 
-            echo 'SELLING (stop-margin): ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            TradeLog($tradeLog, 'Hit stop margin: ' . $trailing_stop_margin);
-	    TradeLog($tradeLog, 'Selling: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
+            echo 'SELLING (stop-margin): ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['sell'] . PHP_EOL;
+	    TradeLog($tradeLog, 'Selling: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['sell']);
 
             $bought = 0;
             $buy_price = 0;
@@ -258,7 +260,7 @@ function trade($trade_pair, $currency1, $currency2, $buyOrSell = 'sell') {
 
     try {
         //$BTCeAPI->makeOrder($amount, $pair, $direction, $price);
-        //echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
+        echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
         if ($simulation !== true) {
            $BTCeAPI->makeOrder($currency1, $trade_pair, $buyOrSell, $currency2);
         }

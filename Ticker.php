@@ -34,9 +34,12 @@ try {
     */
     $tickerLtcUsd = $BTCeAPI->getPairTicker('ltc_usd');
     $tickerBtcUsd = $BTCeAPI->getPairTicker('btc_usd');
+    $tickerNmcUsd = $BTCeAPI->getPairTicker('nmc_usd');
+    $tickerNvcUsd = $BTCeAPI->getPairTicker('nvc_usd');
+    $tickerPpcUsd = $BTCeAPI->getPairTicker('ppc_usd');
 
     // Save to database
-    $result = $mysqli->query("INSERT INTO  `bitbot`.`ticker` (`ltc_usd`,`btc_usd`,`timestamp`) VALUES ('" . $tickerLtcUsd['ticker']['buy'] . "', '" . $tickerBtcUsd['ticker']['buy'] . "', '" . time() . "');");
+    $result = $mysqli->query("INSERT INTO  `bitbot`.`ticker` (`ltc_usd`,`btc_usd`,`nmc_usd`,`nvc_usd`,`ppc_usd`,`timestamp`) VALUES ('" . $tickerLtcUsd['ticker']['buy'] . "', '" . $tickerBtcUsd['ticker']['buy'] . "', '" . $tickerNmcUsd['ticker']['buy'] . "', '" . $tickerNvcUsd['ticker']['buy'] . "', '" . $tickerPpcUsd['ticker']['buy'] . "', '" . time() . "');");
     if (!$result) { echo "MySQL error: " . $mysqli->error . PHP_EOL; exit; }
 
     // Clean database
@@ -54,10 +57,13 @@ try {
     $accountInfo = $BTCeAPI->apiQuery('getInfo');
     $ltc = $accountInfo['return']['funds']['ltc'];
     $btc = $accountInfo['return']['funds']['btc'];
+    $nmc = $accountInfo['return']['funds']['nmc'];
+    $nvc = $accountInfo['return']['funds']['nvc'];
+    $ppc = $accountInfo['return']['funds']['ppc'];
     $usd = $accountInfo['return']['funds']['usd'];
 
     // Save to database
-    $result = $mysqli->query("UPDATE `bitbot`.`balance` SET `ltc` = '" . $ltc . "', `btc` = '" . $btc . "', `usd` = '" . $usd . "', `timestamp` = '" . time() . "' WHERE `balance`.`id` = 1;");
+    $result = $mysqli->query("UPDATE `bitbot`.`balance` SET `ltc` = '" . $ltc . "', `btc` = '" . $btc . "', `nmc` = '" . $nmc . "', `nvc` = '" . $nvc . "', `ppc` = '" . $ppc . "', `usd` = '" . $usd . "', `timestamp` = '" . time() . "' WHERE `balance`.`id` = 1;");
     if (!$result) { echo "MySQL error: " . $mysqli->error . PHP_EOL; exit; }
 } catch(BTCeAPIException $e) {
     echo $e->getMessage();
