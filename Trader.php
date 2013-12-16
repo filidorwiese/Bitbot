@@ -52,6 +52,7 @@ while (true) {
     $SmaDiff = 100 * ($SmaShort - $SmaLong) / (($SmaShort + $SmaLong) / 2);
     $last = floatval($mysqli->query("SELECT " . $TRADE['trade_pair'] . " FROM ticker ORDER BY id DESC LIMIT 1")->fetch_array()[0]);
     $tradeAmount = number_format($balance[$currency2] * $TRADE['trade_amount'], 6);
+    $changePercentage = ((($ticker['buy'] - $last) / $ticker['buy']) * 100);
 
     // Print status
     echo date("d-m-Y H:i:s") . ($simulation ? ' ***SIMULATION***' : '') . PHP_EOL . PHP_EOL;
@@ -61,8 +62,9 @@ while (true) {
     echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . PHP_EOL . PHP_EOL;// . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
 
     echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
-    echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
-    echo 'SMA: short ' . $SmaShort . ', long ' . $SmaLong . ', diff ' . $SmaDiff . '%' . PHP_EOL;
+    echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . ' ' . number_format($changePercentage, 6) . '%' . PHP_EOL;
+    echo 'SMA: short ' . number_format($SmaShort, 6) . ', long ' . number_format($SmaLong, 6) . ', diff ' . number_format($SmaDiff, 6) . '%' . PHP_EOL;
+
     if ($bought > 0) {
        echo 'Bought: ' . $bought . ' ' . $currency1 . ' at ' . $buy_price . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
        echo 'Trailing-stop-margin: ' . $trailing_stop_margin . PHP_EOL;
@@ -76,7 +78,7 @@ while (true) {
         if ($SmaDiff > $TRADE['trade_threshold']) {
             if ($tradeAmount < $balance[$currency2]) {
                 $buy_price = $ticker['buy'];
-                $bought = number_format(($tradeAmount / $ticker['buy']),6);
+                $bought = number_format(($tradeAmount / $ticker['buy']), 6);
 		$cost = number_format($ticker['buy'] * $bought, 6);
                 $trailing_stop_margin = $buy_price * ($TRADE['trade_stop_loss'] / 100);
 
@@ -89,21 +91,16 @@ while (true) {
         }
     }
 
-    // There are two ways of stopping a loss
-    // - Trailing stop, which stops us selling out if the price keeps climbing
-    // - Stop-loss, which stops us losing out if the price goes down, instead of up
-
-    // 1. This is an example of trailing stop. It works by having a margin which increases
-    // like the price does, but never decreases. When the price crosses over this margin, we sell.
+    // Sell on trailing stop-margin
     if ($bought > 0) {
-        // Has the price gone up? If it has, add the difference between the
-        // last price, and the current one to the trailing stop margin.
         if ($ticker['sell'] > $last) {
-            $trailing_stop_margin += $ticker['sell'] - $last;
+            $trailing_stop_margin = max($trailing_stop_margin, $ticker['sell'] * ($TRADE['trade_stop_loss'] / 100));
+            //$trailing_stop_margin += $ticker['sell'] - $last;
         }
+
         // Check if the price is less than the trailing stop margin. If it is, sell.
         if ($ticker['sell'] < $trailing_stop_margin) {
-            $cost = number_format($bought * $ticker['sell'],6);
+            $cost = number_format($bought * $ticker['sell'], 6);
 
             trade($TRADE['trade_pair'], $bought, $ticker['sell'], 'sell');
 
@@ -114,28 +111,6 @@ while (true) {
             $buy_price = 0;
         }
     }
-
-    // 2. This is an example of stop-loss. It works by checking if the price has gone below a certain
-    // percentage of the initial buy price. If it has, we sell.
-    /*
-    if ($bought > 0) {
-        // In this example we store the percentage as a constant, and the buy price.
-        // You can alternatively calculate the stop loss price at buy point, and
-        // store that.
-        $stop_loss_price = $buy_price * ($TRADE['trade_stop_loss'] / 100);
-        // Check if the price is less than the stop loss price. If it is, sell.
-        if ($ticker['sell'] < $stop_loss_price) {
-            $bought = 0;
-            $buy_price = 0;
-            $cost = ($tradeAmount * $ticker['sell']);
-
-            trade($TRADE['trade_pair'], $tradeAmount, $ticker['sell'], 'sell');
-
-            echo 'SELLING (stop-loss): ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . PHP_EOL;
-            log($tradeLog, 'Hit stop loss: ' . $stop_loss_price);
-	    log($tradeLog, 'Selling: ' . $tradeAmount . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2);
-        }
-    }*/
 
     // Wait for a while
     echo str_repeat('-', 30) . ' waiting ' . $TRADE['trade_wait'] . ' sec ' . str_repeat('-', 30) . PHP_EOL;
@@ -255,12 +230,12 @@ function getTicker($trade_pair = 'btc_usd') {
 function trade($trade_pair, $currency1, $currency2, $buyOrSell = 'sell') {
     global $BTCeAPI, $lastAction, $minimumProfitableSell, $simulation;
 
-    $currency1 = number_format($currency1, 6);
-    $currency2 = number_format($currency2, 6);
+    $currency1 = (float)number_format($currency1, 6);
+    $currency2 = (float)number_format($currency2, 6);
 
     try {
         //$BTCeAPI->makeOrder($amount, $pair, $direction, $price);
-        //echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
+        echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.", ". $buyOrSell. ", ". $currency2. ");" . PHP_EOL;
         if ($simulation !== true) {
            $BTCeAPI->makeOrder($currency1, $trade_pair, $buyOrSell, $currency2);
         }
