@@ -38,7 +38,7 @@ class BTCeAPI {
     protected function getnoonce() {
         $this->noonce++;
         file_put_contents($this->nonce_storage, $this->noonce);
-        echo 'nonce: ' . $this->noonce;
+        //echo 'nonce: ' . $this->noonce;
         return array(0.05, $this->noonce);
     }
     

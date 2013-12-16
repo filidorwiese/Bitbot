@@ -260,7 +260,7 @@ function trade($trade_pair, $currency1, $currency2, $buyOrSell = 'sell') {
 
     try {
         //$BTCeAPI->makeOrder($amount, $pair, $direction, $price);
-        echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
+        //echo "BTCeAPI->makeOrder(".$currency1.", ".$trade_pair.",". $buyOrSell. ",". $currency2. ");" . PHP_EOL;
         if ($simulation !== true) {
            $BTCeAPI->makeOrder($currency1, $trade_pair, $buyOrSell, $currency2);
         }
