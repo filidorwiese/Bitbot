@@ -67,15 +67,9 @@ while (true) {
     echo 'Trade amount: ' . $tradeAmount . ' ' . $currency2 . PHP_EOL;
     echo 'Account balance: ' . $balance[$currency1] . ' ' . $currency1 . ' ' . $balance[$currency2] . ' ' . $currency2 . PHP_EOL . PHP_EOL;// . ' (value: ' . $accountValue . ' ' . $currency2 . ')' . PHP_EOL . PHP_EOL;
 
-<<<<<<< HEAD
-    echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
-    echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . ' ' . number_format($changePercentage, 6) . '%' . PHP_EOL;
-    echo 'SMA: short ' . number_format($SmaShort, 6) . ', long ' . number_format($SmaLong, 6) . ', diff ' . number_format($SmaDiff, 6) . '%' . PHP_EOL;
-=======
     echo 'Current: ' . $ticker['buy'] . ' ' . $currency2 . ' per ' . $currency1 . ' (' . number_format($changePercentage, 6) . '%)' . PHP_EOL;
     echo 'Last: ' . $last . ' ' . $currency2 . ' per ' . $currency1 . ' ' . PHP_EOL;
     echo 'SMA: long ' . number_format($SmaLong, 6) . ', short ' . number_format($SmaShort, 6) . ', diff ' . number_format($SmaDiff, 6) . '%' . PHP_EOL;
->>>>>>> cf1cf9912568e698d87bf75b48c433ff96b695a3
 
     if ($bought > 0) {
        echo 'Bought: ' . $bought . ' ' . $currency1 . ' at ' . $buy_price . ' ' . $currency2 . ' per ' . $currency1 . PHP_EOL;
@@ -95,17 +89,12 @@ while (true) {
                 $trailing_stop_margin = $buy_price * ($TRADE['trade_stop_loss'] / 100);
 
                 trade($TRADE['trade_pair'], $bought, $ticker['buy'], 'buy');
-<<<<<<< HEAD
-                echo 'BUYING: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['buy'] . PHP_EOL;
-                TradeLog($tradeLog, 'Buying: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['buy']);
-=======
 
                 // Substract fee from received amount
                 $fee = ($bought / 100) * .2;
                 $bought -= $fee;
 
                 TradeLog($tradeLog, 'Buying: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['buy'] . ' (fee: ' . $fee . ' ' . $currency1 . ')');
->>>>>>> cf1cf9912568e698d87bf75b48c433ff96b695a3
 	    } else {
                 echo 'NOT ENOUGH ' . $currency2 . PHP_EOL;
             }
@@ -125,10 +114,6 @@ while (true) {
 
             trade($TRADE['trade_pair'], $bought, $ticker['sell'], 'sell');
 
-<<<<<<< HEAD
-            echo 'SELLING (stop-margin): ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['sell'] . PHP_EOL;
-=======
->>>>>>> cf1cf9912568e698d87bf75b48c433ff96b695a3
 	    TradeLog($tradeLog, 'Selling: ' . $bought . ' ' . $currency1 . ' for ' . $cost . ' ' . $currency2 . ' at ' . $ticker['sell']);
 
             $bought = 0;
@@ -144,10 +129,7 @@ while (true) {
 
 function TradeLog($file, $line) {
 global $simulation;
-<<<<<<< HEAD
-=======
      echo $line . PHP_EOL;
->>>>>>> cf1cf9912568e698d87bf75b48c433ff96b695a3
      if ($simulation) { return; }
      file_put_contents($file, '[' . date("d-m-Y H:i:s") . '] ' .$line . PHP_EOL, FILE_APPEND);
 }
